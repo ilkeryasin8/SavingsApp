@@ -11,6 +11,7 @@ import {
   IconButton,
   TextField,
   Chip,
+  Slider,
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { SavingsGoal } from '@/types/savings';
@@ -19,9 +20,11 @@ import { useState } from 'react';
 interface SavingsGoalListProps {
   goals: SavingsGoal[];
   onUpdateAmount: (id: string, amount: number) => void;
+  onUpdatePercentage: (id: string, percentage: number) => void;
+  monthlyTotal: number;
 }
 
-export default function SavingsGoalList({ goals, onUpdateAmount }: SavingsGoalListProps) {
+export default function SavingsGoalList({ goals, onUpdateAmount, onUpdatePercentage, monthlyTotal }: SavingsGoalListProps) {
   const [amounts, setAmounts] = useState<{ [key: string]: string }>({});
 
   const handleAddAmount = (id: string) => {
@@ -41,7 +44,9 @@ export default function SavingsGoalList({ goals, onUpdateAmount }: SavingsGoalLi
         {goals.map((goal) => {
           const progress = (goal.currentAmount / goal.targetAmount) * 100;
           const remainingAmount = goal.targetAmount - goal.currentAmount;
-          const monthlyAmount = (remainingAmount * goal.monthlyPercentage) / 100;
+          const monthsToComplete = goal.monthlyAmount > 0 ? Math.ceil(remainingAmount / goal.monthlyAmount) : 0;
+          const completionDate = new Date();
+          completionDate.setMonth(completionDate.getMonth() + monthsToComplete);
 
           return (
             <ListItem
@@ -55,30 +60,53 @@ export default function SavingsGoalList({ goals, onUpdateAmount }: SavingsGoalLi
                 py: 2,
               }}
             >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <Box sx={{ flex: 1 }}>
                   <ListItemText
                     primary={goal.name}
                     secondary={`Hedef: ${goal.targetAmount.toLocaleString('tr-TR')} TL`}
                   />
                   <Box sx={{ mt: 1 }}>
                     <Chip
-                      label={`Aylık Hedef: ${monthlyAmount.toLocaleString('tr-TR')} TL (%${goal.monthlyPercentage})`}
+                      label={`Aylık: ${goal.monthlyAmount.toLocaleString('tr-TR')} TL`}
                       color="primary"
+                      variant="outlined"
+                      size="small"
+                      sx={{ mr: 1 }}
+                    />
+                    <Chip
+                      label={`Kalan: ${remainingAmount.toLocaleString('tr-TR')} TL`}
+                      color="secondary"
                       variant="outlined"
                       size="small"
                     />
                   </Box>
                 </Box>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
                   {`${goal.currentAmount.toLocaleString('tr-TR')} TL`}
                 </Typography>
               </Box>
+
+              <Box sx={{ px: 1 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Dağıtım Yüzdesi: %{goal.monthlyPercentage}
+                </Typography>
+                <Slider
+                  value={goal.monthlyPercentage}
+                  onChange={(_, value) => onUpdatePercentage(goal.id, value as number)}
+                  min={0}
+                  max={100}
+                  valueLabelDisplay="auto"
+                  valueLabelFormat={(value) => `%${value}`}
+                />
+              </Box>
+
               <LinearProgress
                 variant="determinate"
                 value={progress}
                 sx={{ height: 8, borderRadius: 4 }}
               />
+
               <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
                 <TextField
                   size="small"
@@ -96,6 +124,12 @@ export default function SavingsGoalList({ goals, onUpdateAmount }: SavingsGoalLi
                   <AddIcon />
                 </IconButton>
               </Box>
+
+              {monthsToComplete > 0 && (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Tahmini tamamlanma: {completionDate.toLocaleDateString('tr-TR')}
+                </Typography>
+              )}
             </ListItem>
           );
         })}

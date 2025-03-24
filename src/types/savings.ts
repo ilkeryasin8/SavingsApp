@@ -5,4 +5,5 @@ export interface SavingsGoal {
   currentAmount: number;
   createdAt: Date;
   monthlyPercentage: number;
+  monthlyAmount: number;
 } 
