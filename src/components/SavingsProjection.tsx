@@ -9,6 +9,7 @@ import {
   TableHead,
   TableRow,
   Typography,
+  Box,
 } from '@mui/material';
 import { SavingsGoal } from '@/types/savings';
 
@@ -17,6 +18,10 @@ interface SavingsProjectionProps {
 }
 
 export default function SavingsProjection({ goals }: SavingsProjectionProps) {
+  if (goals.length === 0) {
+    return null;
+  }
+
   // Gelecek 12 ay için projeksiyon oluştur
   const projections = Array.from({ length: 12 }, (_, monthIndex) => {
     const date = new Date();
@@ -39,17 +44,40 @@ export default function SavingsProjection({ goals }: SavingsProjectionProps) {
   });
 
   return (
-    <Paper elevation={2} sx={{ p: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        12 Aylık Projeksiyon
-      </Typography>
-      <TableContainer sx={{ maxHeight: 440 }}>
+    <Paper 
+      elevation={0} 
+      sx={{ 
+        border: '1px solid',
+        borderColor: 'divider',
+        backgroundColor: 'background.paper'
+      }}
+    >
+      <Box sx={{ p: 3, borderBottom: '1px solid', borderColor: 'divider' }}>
+        <Typography variant="h6" color="text.primary">
+          12 Aylık Projeksiyon
+        </Typography>
+      </Box>
+      <TableContainer sx={{ maxHeight: 'calc(100vh - 400px)' }}>
         <Table stickyHeader size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Tarih</TableCell>
+              <TableCell 
+                sx={{ 
+                  backgroundColor: 'background.paper',
+                  fontWeight: 600,
+                }}
+              >
+                Tarih
+              </TableCell>
               {goals.map((goal) => (
-                <TableCell key={goal.id} align="right">
+                <TableCell 
+                  key={goal.id} 
+                  align="right"
+                  sx={{ 
+                    backgroundColor: 'background.paper',
+                    fontWeight: 600,
+                  }}
+                >
                   {goal.name}
                 </TableCell>
               ))}
@@ -57,8 +85,23 @@ export default function SavingsProjection({ goals }: SavingsProjectionProps) {
           </TableHead>
           <TableBody>
             {projections.map((projection) => (
-              <TableRow key={projection.date.toISOString()}>
-                <TableCell component="th" scope="row">
+              <TableRow 
+                key={projection.date.toISOString()}
+                sx={{
+                  '&:last-child td, &:last-child th': { border: 0 },
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  },
+                }}
+              >
+                <TableCell 
+                  component="th" 
+                  scope="row"
+                  sx={{ 
+                    color: 'text.secondary',
+                    fontWeight: 500,
+                  }}
+                >
                   {projection.date.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}
                 </TableCell>
                 {projection.goals.map((goal) => (
@@ -66,8 +109,8 @@ export default function SavingsProjection({ goals }: SavingsProjectionProps) {
                     key={goal.id}
                     align="right"
                     sx={{
-                      color: goal.isComplete ? 'success.main' : 'inherit',
-                      fontWeight: goal.isComplete ? 'bold' : 'inherit',
+                      color: goal.isComplete ? 'success.main' : 'text.primary',
+                      fontWeight: goal.isComplete ? 600 : 400,
                     }}
                   >
                     {goal.projectedAmount.toLocaleString('tr-TR')} TL

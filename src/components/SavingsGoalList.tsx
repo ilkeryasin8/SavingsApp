@@ -12,6 +12,7 @@ import {
   TextField,
   Chip,
   Slider,
+  InputAdornment,
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { SavingsGoal } from '@/types/savings';
@@ -34,12 +35,38 @@ export default function SavingsGoalList({ goals, onUpdateAmount, onUpdatePercent
     }
   };
 
+  if (goals.length === 0) {
+    return (
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 4,
+          border: '1px solid',
+          borderColor: 'divider',
+          backgroundColor: 'background.paper',
+          textAlign: 'center'
+        }}
+      >
+        <Typography variant="h6" color="text.secondary" gutterBottom>
+          Henüz Hedef Eklenmemiş
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Yeni bir tasarruf hedefi ekleyerek başlayın
+        </Typography>
+      </Paper>
+    );
+  }
+
   return (
-    <Paper elevation={2} sx={{ p: 3 }}>
-      <Typography variant="h6" gutterBottom>
-        Tasarruf Hedefleriniz
-      </Typography>
-      <List>
+    <Paper 
+      elevation={0} 
+      sx={{ 
+        border: '1px solid',
+        borderColor: 'divider',
+        backgroundColor: 'background.paper'
+      }}
+    >
+      <List sx={{ p: 0 }}>
         {goals.map((goal) => {
           const progress = (goal.currentAmount / goal.targetAmount) * 100;
           const remainingAmount = goal.targetAmount - goal.currentAmount;
@@ -53,40 +80,67 @@ export default function SavingsGoalList({ goals, onUpdateAmount, onUpdatePercent
               sx={{
                 flexDirection: 'column',
                 alignItems: 'stretch',
-                gap: 1,
-                borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
-                '&:last-child': { borderBottom: 'none' },
-                py: 2,
+                gap: 2,
+                p: 3,
+                borderBottom: '1px solid',
+                borderColor: 'divider',
+                '&:last-child': { 
+                  borderBottom: 'none',
+                },
               }}
             >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <Box sx={{ flex: 1 }}>
-                  <ListItemText
-                    primary={goal.name}
-                    secondary={`Hedef: ${goal.targetAmount.toLocaleString('tr-TR')} TL`}
-                  />
-                  <Box sx={{ mt: 1 }}>
+                  <Typography variant="h6" color="text.primary" gutterBottom>
+                    {goal.name}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                     <Chip
-                      label={`Aylık: ${goal.monthlyAmount.toLocaleString('tr-TR')} TL`}
+                      label={`Hedef: ${goal.targetAmount.toLocaleString('tr-TR')} TL`}
                       color="primary"
                       variant="outlined"
                       size="small"
-                      sx={{ mr: 1 }}
                     />
                     <Chip
-                      label={`Kalan: ${remainingAmount.toLocaleString('tr-TR')} TL`}
+                      label={`Mevcut: ${goal.currentAmount.toLocaleString('tr-TR')} TL`}
                       color="secondary"
+                      variant="outlined"
+                      size="small"
+                    />
+                    <Chip
+                      label={`Aylık: ${goal.monthlyAmount.toLocaleString('tr-TR')} TL`}
+                      color="info"
                       variant="outlined"
                       size="small"
                     />
                   </Box>
                 </Box>
-                <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
-                  {`${goal.currentAmount.toLocaleString('tr-TR')} TL`}
-                </Typography>
               </Box>
 
-              <Box sx={{ px: 1 }}>
+              <Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    İlerleme: %{Math.round(progress)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Kalan: {remainingAmount.toLocaleString('tr-TR')} TL
+                  </Typography>
+                </Box>
+                <LinearProgress
+                  variant="determinate"
+                  value={progress}
+                  sx={{
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                    '& .MuiLinearProgress-bar': {
+                      borderRadius: 4,
+                    },
+                  }}
+                />
+              </Box>
+
+              <Box>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   Dağıtım Yüzdesi: %{goal.monthlyPercentage}
                 </Typography>
@@ -97,35 +151,62 @@ export default function SavingsGoalList({ goals, onUpdateAmount, onUpdatePercent
                   max={100}
                   valueLabelDisplay="auto"
                   valueLabelFormat={(value) => `%${value}`}
+                  sx={{
+                    '& .MuiSlider-thumb': {
+                      '&:hover, &.Mui-focusVisible': {
+                        boxShadow: '0 0 0 8px rgba(37, 99, 235, 0.16)',
+                      },
+                    },
+                  }}
                 />
               </Box>
 
-              <LinearProgress
-                variant="determinate"
-                value={progress}
-                sx={{ height: 8, borderRadius: 4 }}
-              />
-
-              <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+              <Box sx={{ display: 'flex', gap: 1 }}>
                 <TextField
                   size="small"
-                  label="Miktar Ekle (TL)"
+                  label="Miktar Ekle"
                   type="number"
                   value={amounts[goal.id] || ''}
                   onChange={(e) => setAmounts((prev) => ({ ...prev, [goal.id]: e.target.value }))}
-                  sx={{ flexGrow: 1 }}
+                  fullWidth
+                  InputProps={{
+                    endAdornment: <InputAdornment position="end">TL</InputAdornment>,
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '&:hover fieldset': {
+                        borderColor: 'primary.main',
+                      },
+                    },
+                  }}
                 />
                 <IconButton
                   color="primary"
                   onClick={() => handleAddAmount(goal.id)}
                   disabled={!amounts[goal.id]}
+                  sx={{ 
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    width: 40,
+                    height: 40,
+                  }}
                 >
                   <AddIcon />
                 </IconButton>
               </Box>
 
               {monthsToComplete > 0 && (
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary"
+                  sx={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                    p: 1,
+                    borderRadius: 1,
+                    textAlign: 'center',
+                  }}
+                >
                   Tahmini tamamlanma: {completionDate.toLocaleDateString('tr-TR')}
                 </Typography>
               )}
