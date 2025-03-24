@@ -5,7 +5,7 @@ import { Box, TextField, Button, Paper, Typography } from '@mui/material';
 import { SavingsGoal } from '@/types/savings';
 
 interface SavingsGoalFormProps {
-  onAddGoal: (goal: Omit<SavingsGoal, 'id' | 'currentAmount' | 'createdAt' | 'monthlyPercentage'>) => void;
+  onAddGoal: (goal: Omit<SavingsGoal, 'id' | 'currentAmount' | 'createdAt' | 'monthlyPercentage' | 'monthlyAmount'>) => void;
 }
 
 export default function SavingsGoalForm({ onAddGoal }: SavingsGoalFormProps) {
