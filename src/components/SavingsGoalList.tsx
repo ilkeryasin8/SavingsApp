@@ -21,10 +21,9 @@ interface SavingsGoalListProps {
   goals: SavingsGoal[];
   onUpdateAmount: (id: string, amount: number) => void;
   onUpdatePercentage: (id: string, percentage: number) => void;
-  monthlyTotal: number;
 }
 
-export default function SavingsGoalList({ goals, onUpdateAmount, onUpdatePercentage, monthlyTotal }: SavingsGoalListProps) {
+export default function SavingsGoalList({ goals, onUpdateAmount, onUpdatePercentage }: SavingsGoalListProps) {
   const [amounts, setAmounts] = useState<{ [key: string]: string }>({});
 
   const handleAddAmount = (id: string) => {

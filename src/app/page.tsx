@@ -9,16 +9,6 @@ import SavingsGoalList from '@/components/SavingsGoalList';
 import SavingsProjection from '@/components/SavingsProjection';
 import { SavingsGoal } from '@/types/savings';
 
-const calculateInitialPercentage = (targetAmount: number): number => {
-  // Hedef miktara göre başlangıç yüzdesi belirleme
-  if (targetAmount <= 1000) return 20;
-  if (targetAmount <= 5000) return 15;
-  if (targetAmount <= 10000) return 12;
-  if (targetAmount <= 50000) return 10;
-  if (targetAmount <= 100000) return 8;
-  return 5;
-};
-
 export default function Home() {
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [monthlyTotal, setMonthlyTotal] = useState<string>('');
@@ -118,7 +108,6 @@ export default function Home() {
               goals={goals}
               onUpdateAmount={handleUpdateAmount}
               onUpdatePercentage={handleUpdatePercentage}
-              monthlyTotal={Number(monthlyTotal)}
             />
           </Box>
           <Box sx={{ flex: 1 }}>
