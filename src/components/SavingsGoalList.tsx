@@ -1,10 +1,8 @@
 'use client';
 
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Paper,
-  List,
-  ListItem,
-  ListItemText,
   Typography,
   LinearProgress,
   Box,
@@ -13,10 +11,12 @@ import {
   Chip,
   Slider,
   InputAdornment,
+  List,
+  ListItem,
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { SavingsGoal } from '@/types/savings';
-import { useState } from 'react';
+import { debounce } from 'lodash';
 
 interface SavingsGoalListProps {
   goals: SavingsGoal[];
@@ -24,27 +24,97 @@ interface SavingsGoalListProps {
   onUpdatePercentage: (id: string, percentage: number) => void;
 }
 
+interface GoalWithEstimates {
+  id: string;
+  completionDate: string | null;
+  monthsToComplete: number;
+}
+
 export default function SavingsGoalList({ goals, onUpdateAmount, onUpdatePercentage }: SavingsGoalListProps) {
-  const [amounts, setAmounts] = useState<{ [key: string]: string }>({});
+  const [amountInputs, setAmountInputs] = React.useState<{ [key: string]: string }>({});
+  const [estimates, setEstimates] = useState<{ [key: string]: GoalWithEstimates }>({});
+  const [sliderValues, setSliderValues] = useState<{ [key: string]: number }>({});
+
+  useEffect(() => {
+    const newEstimates: { [key: string]: GoalWithEstimates } = {};
+    goals.forEach((goal) => {
+      const remainingAmount = goal.targetAmount - goal.currentAmount;
+      const monthsToComplete = goal.monthlyAmount > 0 ? Math.ceil(remainingAmount / goal.monthlyAmount) : 0;
+      
+      let completionDate = null;
+      if (monthsToComplete > 0) {
+        const date = new Date();
+        date.setMonth(date.getMonth() + monthsToComplete);
+        completionDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+      }
+
+      newEstimates[goal.id] = {
+        id: goal.id,
+        completionDate,
+        monthsToComplete,
+      };
+    });
+    setEstimates(newEstimates);
+  }, [goals]);
+
+  useEffect(() => {
+    const initialValues: { [key: string]: number } = {};
+    goals.forEach((goal) => {
+      initialValues[goal.id] = goal.monthlyPercentage;
+    });
+    setSliderValues(initialValues);
+  }, [goals]);
+
+  const debouncedUpdatePercentage = useCallback(
+    debounce((id: string, value: number) => {
+      onUpdatePercentage(id, value);
+    }, 500),
+    [onUpdatePercentage]
+  );
+
+  const handleSliderChange = (id: string, value: number) => {
+    setSliderValues(prev => ({ ...prev, [id]: value }));
+    debouncedUpdatePercentage(id, value);
+  };
+
+  const handleAmountChange = (id: string, value: string) => {
+    setAmountInputs(prev => ({ ...prev, [id]: value }));
+  };
 
   const handleAddAmount = (id: string) => {
-    const amount = amounts[id];
-    if (amount) {
-      onUpdateAmount(id, Number(amount));
-      setAmounts((prev) => ({ ...prev, [id]: '' }));
+    const amount = Number(amountInputs[id]);
+    if (!isNaN(amount) && amount > 0) {
+      onUpdateAmount(id, amount);
+      setAmountInputs(prev => ({ ...prev, [id]: '' }));
     }
+  };
+
+  const handleKeyPress = (event: React.KeyboardEvent, id: string) => {
+    if (event.key === 'Enter') {
+      handleAddAmount(id);
+    }
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('tr-TR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }).format(date);
   };
 
   if (goals.length === 0) {
     return (
       <Paper 
-        elevation={0} 
+        elevation={0}
         sx={{ 
           p: 4,
+          textAlign: 'center',
           border: '1px solid',
           borderColor: 'divider',
           backgroundColor: 'background.paper',
-          textAlign: 'center'
         }}
       >
         <Typography variant="h6" color="text.secondary" gutterBottom>
@@ -63,16 +133,16 @@ export default function SavingsGoalList({ goals, onUpdateAmount, onUpdatePercent
       sx={{ 
         border: '1px solid',
         borderColor: 'divider',
-        backgroundColor: 'background.paper'
+        backgroundColor: 'background.paper',
+        mt: 3,
       }}
     >
       <List sx={{ p: 0 }}>
         {goals.map((goal) => {
           const progress = (goal.currentAmount / goal.targetAmount) * 100;
           const remainingAmount = goal.targetAmount - goal.currentAmount;
-          const monthsToComplete = goal.monthlyAmount > 0 ? Math.ceil(remainingAmount / goal.monthlyAmount) : 0;
-          const completionDate = new Date();
-          completionDate.setMonth(completionDate.getMonth() + monthsToComplete);
+          const isCompleted = progress >= 100;
+          const estimate = estimates[goal.id];
 
           return (
             <ListItem
@@ -113,6 +183,13 @@ export default function SavingsGoalList({ goals, onUpdateAmount, onUpdatePercent
                       variant="outlined"
                       size="small"
                     />
+                    {isCompleted && (
+                      <Chip 
+                        label="Tamamlandı" 
+                        color="success"
+                        size="small"
+                      />
+                    )}
                   </Box>
                 </Box>
               </Box>
@@ -128,75 +205,82 @@ export default function SavingsGoalList({ goals, onUpdateAmount, onUpdatePercent
                 </Box>
                 <LinearProgress
                   variant="determinate"
-                  value={progress}
+                  value={Math.min(progress, 100)}
                   sx={{
                     height: 8,
                     borderRadius: 4,
                     backgroundColor: 'rgba(0, 0, 0, 0.08)',
                     '& .MuiLinearProgress-bar': {
                       borderRadius: 4,
+                      backgroundColor: isCompleted ? 'success.main' : 'primary.main',
                     },
                   }}
                 />
               </Box>
 
-              <Box>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Dağıtım Yüzdesi: %{goal.monthlyPercentage}
-                </Typography>
-                <Slider
-                  value={goal.monthlyPercentage}
-                  onChange={(_, value) => onUpdatePercentage(goal.id, value as number)}
-                  min={0}
-                  max={100}
-                  valueLabelDisplay="auto"
-                  valueLabelFormat={(value) => `%${value}`}
-                  sx={{
-                    '& .MuiSlider-thumb': {
-                      '&:hover, &.Mui-focusVisible': {
-                        boxShadow: '0 0 0 8px rgba(37, 99, 235, 0.16)',
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Dağıtım Yüzdesi: %{sliderValues[goal.id] || goal.monthlyPercentage}
+                  </Typography>
+                  <Slider
+                    value={sliderValues[goal.id] || goal.monthlyPercentage}
+                    onChange={(_, value) => handleSliderChange(goal.id, value as number)}
+                    min={0}
+                    max={100}
+                    valueLabelDisplay="auto"
+                    valueLabelFormat={(value) => `%${value}`}
+                    sx={{
+                      color: isCompleted ? 'success.main' : 'primary.main',
+                      '& .MuiSlider-thumb': {
+                        height: 20,
+                        width: 20,
+                        backgroundColor: '#fff',
+                        border: '2px solid currentColor',
+                        '&:hover, &.Mui-focusVisible': {
+                          boxShadow: '0 0 0 8px rgba(25, 118, 210, 0.16)',
+                        },
                       },
-                    },
-                  }}
-                />
-              </Box>
-
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <TextField
-                  size="small"
-                  label="Miktar Ekle"
-                  type="number"
-                  value={amounts[goal.id] || ''}
-                  onChange={(e) => setAmounts((prev) => ({ ...prev, [goal.id]: e.target.value }))}
-                  fullWidth
-                  InputProps={{
-                    endAdornment: <InputAdornment position="end">TL</InputAdornment>,
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': {
-                        borderColor: 'primary.main',
+                      '& .MuiSlider-track': {
+                        height: 6,
+                        borderRadius: 3,
                       },
-                    },
-                  }}
-                />
-                <IconButton
-                  color="primary"
-                  onClick={() => handleAddAmount(goal.id)}
-                  disabled={!amounts[goal.id]}
-                  sx={{ 
-                    border: 1,
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    width: 40,
-                    height: 40,
-                  }}
-                >
-                  <AddIcon />
-                </IconButton>
+                      '& .MuiSlider-rail': {
+                        height: 6,
+                        borderRadius: 3,
+                      },
+                    }}
+                  />
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1, minWidth: 200 }}>
+                  <TextField
+                    size="small"
+                    type="number"
+                    value={amountInputs[goal.id] || ''}
+                    onChange={(e) => handleAmountChange(goal.id, e.target.value)}
+                    onKeyPress={(e) => handleKeyPress(e, goal.id)}
+                    placeholder="Miktar"
+                    fullWidth
+                    InputProps={{
+                      endAdornment: <InputAdornment position="end">TL</InputAdornment>,
+                    }}
+                  />
+                  <IconButton
+                    color="primary"
+                    onClick={() => handleAddAmount(goal.id)}
+                    disabled={!amountInputs[goal.id] || Number(amountInputs[goal.id]) <= 0}
+                    sx={{ 
+                      border: 1,
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                    }}
+                  >
+                    <AddIcon />
+                  </IconButton>
+                </Box>
               </Box>
 
-              {monthsToComplete > 0 && (
+              {estimate?.monthsToComplete > 0 && !isCompleted && estimate.completionDate && (
                 <Typography 
                   variant="body2" 
                   color="text.secondary"
@@ -207,7 +291,7 @@ export default function SavingsGoalList({ goals, onUpdateAmount, onUpdatePercent
                     textAlign: 'center',
                   }}
                 >
-                  Tahmini tamamlanma: {completionDate.toLocaleDateString('tr-TR')}
+                  Tahmini tamamlanma: {formatDate(estimate.completionDate)}
                 </Typography>
               )}
             </ListItem>
